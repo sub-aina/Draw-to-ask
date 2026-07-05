@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'" />
+  <title>Draw to Ask overlay</title>
+  <link rel="stylesheet" href="overlay.css" />
+</head>
+<body>
+  <!-- Frozen frame of the screen (shown only while drawing) -->
+  <img id="frozen" alt="" draggable="false" />
+
+  <!-- Ink layer: user strokes, in CSS pixels -->
+  <canvas id="ink"></canvas>
+
+  <!-- Dim veil + hint shown at session start -->
+  <div id="hint" class="chip" hidden>CIRCLE SOMETHING &nbsp;·&nbsp; ESC TO BAIL</div>
+
+  <!-- Floating question bar, appears near the stroke -->
+  <div id="askbar" hidden>
+    <div class="askbar-inner">
+      <span class="askbar-glyph">?</span>
+      <input id="question" type="text" spellcheck="false" autocomplete="off"
+             placeholder="Ask about it… or just hit Enter" />
+      <button id="askbtn" type="button">ASK</button>
+    </div>
+    <div class="askbar-hint">ENTER = ask · keep drawing to widen · ESC = cancel</div>
+  </div>
+
+  <!-- API key onboarding card -->
+  <div id="keycard" class="card" hidden>
+    <div class="card-title">FIRST RUN: API KEY</div>
+    <p>Answers come from Groq (free tier). Get a key at
+       <b>console.groq.com/keys</b>, then paste it here (stored locally),
+       or quit and launch with <code>GROQ_API_KEY</code> set.</p>
+    <input id="keyinput" type="password" placeholder="gsk_…" spellcheck="false" />
+    <div class="card-actions">
+      <button id="keysave" type="button">SAVE KEY</button>
+      <button id="keycancel" type="button" class="ghost">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- macOS screen-recording permission card -->
+  <div id="permcard" class="card" hidden>
+    <div class="card-title">SCREEN RECORDING PERMISSION</div>
+    <p>macOS blocks screen capture until you allow it:
+       <b>System Settings → Privacy &amp; Security → Screen Recording</b> →
+       enable this app, then <b>fully quit and relaunch</b> (the toggle does
+       nothing until restart).</p>
+    <p class="fine">Heads-up: macOS 15 Sequoia re-asks roughly monthly — that's
+       Apple, not us.</p>
+    <div class="card-actions">
+      <button id="permopen" type="button">OPEN SETTINGS</button>
+      <button id="permclose" type="button" class="ghost">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Sticky notes get appended here -->
+  <div id="notes"></div>
+
+  <script src="overlay.js"></script>
+</body>
+</html>

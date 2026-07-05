@@ -1,0 +1,211 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   Draw to Ask — Neo-Brutalist overlay
+   Tokens: paper #FFF9DB (sticky yellow) · ink #101010 · marker #FF3D00
+           panel #FFFFFF · shadow = hard 6px offset, zero blur
+   Type: IBM Plex Mono if installed, honest mono fallbacks otherwise.
+   ──────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --paper: #fff9db;
+  --panel: #ffffff;
+  --ink: #101010;
+  --marker: #ff3d00;
+  --shadow: 6px 6px 0 var(--ink);
+  --border: 3px solid var(--ink);
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--mono);
+  color: var(--ink);
+  user-select: none;
+}
+
+/* Frozen screenshot fills the display 1:1 (image is device-px, element is CSS-px) */
+#frozen {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: none;
+}
+body.frozen #frozen { display: block; }
+
+/* Slight veil so "frozen" is legible as a mode, ink pops */
+body.frozen #frozen { filter: brightness(0.92) saturate(0.85); }
+
+#ink {
+  position: fixed; inset: 0;
+  cursor: crosshair;
+  display: none;
+}
+body.frozen #ink,
+body.notes-mode #ink { display: block; }
+body.notes-mode #ink { pointer-events: none; cursor: default; }
+
+/* ── Hint chip ─────────────────────────────────────────────────────────── */
+.chip {
+  position: fixed; top: 28px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink); color: var(--paper);
+  padding: 8px 16px;
+  font-size: 12px; letter-spacing: 0.12em;
+  border: 3px solid var(--paper);
+  box-shadow: 4px 4px 0 rgba(0,0,0,.35);
+}
+
+/* ── Ask bar ───────────────────────────────────────────────────────────── */
+#askbar { position: fixed; width: 380px; }
+
+.askbar-inner {
+  display: flex; align-items: stretch;
+  background: var(--panel);
+  border: var(--border);
+  box-shadow: var(--shadow);
+}
+.askbar-glyph {
+  display: grid; place-items: center;
+  width: 40px;
+  background: var(--marker); color: var(--panel);
+  font-weight: 700; font-size: 20px;
+  border-right: var(--border);
+}
+#question {
+  flex: 1; min-width: 0;
+  border: 0; outline: none;
+  padding: 12px;
+  font: 14px var(--mono);
+  background: var(--panel); color: var(--ink);
+}
+#question::placeholder { color: #9a9a9a; }
+#askbtn {
+  border: 0; border-left: var(--border);
+  background: var(--paper);
+  font: 700 13px var(--mono); letter-spacing: 0.08em;
+  padding: 0 16px; cursor: pointer;
+}
+#askbtn:hover { background: var(--marker); color: var(--panel); }
+#askbtn:focus-visible, #question:focus-visible { outline: 3px dashed var(--marker); outline-offset: -3px; }
+
+.askbar-hint {
+  margin-top: 6px;
+  font-size: 10px; letter-spacing: 0.1em;
+  color: var(--panel);
+  text-shadow: 1px 1px 0 var(--ink), -1px 1px 0 var(--ink), 1px -1px 0 var(--ink), -1px -1px 0 var(--ink);
+}
+
+/* ── Sticky note (the signature element) ───────────────────────────────── */
+.note {
+  position: fixed;
+  width: 320px; max-width: 44vw;
+  background: var(--paper);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  animation: slap 140ms cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes slap {
+  from { transform: scale(1.06) rotate(-1.2deg); }
+  to   { transform: scale(1)    rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .note { animation: none; }
+}
+
+.note-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: var(--ink); color: var(--paper);
+  font-size: 10px; letter-spacing: 0.14em;
+  cursor: grab;
+}
+.note-head:active { cursor: grabbing; }
+.note-head .dot {
+  width: 10px; height: 10px;
+  background: var(--marker);
+  border: 2px solid var(--paper);
+  flex: none;
+}
+.note-head .spacer { flex: 1; }
+.note-close, .note-save {
+  background: none; border: 0;
+  color: var(--paper);
+  font: 700 14px var(--mono);
+  cursor: pointer; padding: 0 4px;
+}
+.note-close:hover, .note-save:hover { color: var(--marker); }
+
+.note-body {
+  padding: 12px 14px;
+  font-size: 13px; line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  max-height: 46vh; overflow-y: auto;
+  user-select: text;
+}
+.note-body code, .note-body pre {
+  font-family: var(--mono);
+  background: #00000010;
+  padding: 0 3px;
+}
+.note-body .caret {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--marker);
+  vertical-align: -2px;
+  animation: blink 0.8s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.note-foot {
+  padding: 5px 10px;
+  font-size: 10px; letter-spacing: 0.04em;
+  background: #d7f5dc; color: #14532d;
+  border-top: 2px solid var(--ink);
+  overflow-wrap: break-word;
+}
+.note-foot.error { background: #ffd9d0; color: #7f1d1d; }
+
+.note.error { background: #ffd9d0; }
+.note.error .note-head { background: var(--marker); color: var(--panel); }
+
+/* ── Cards (API key, permissions) ──────────────────────────────────────── */
+.card {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 440px; max-width: 90vw;
+  background: var(--panel);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.card-title {
+  display: inline-block;
+  background: var(--marker); color: var(--panel);
+  padding: 4px 10px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  margin-bottom: 12px;
+}
+.card p { font-size: 13px; line-height: 1.55; margin-bottom: 10px; }
+.card .fine { font-size: 11px; color: #555; }
+.card code { background: #00000010; padding: 0 4px; }
+.card input {
+  width: 100%;
+  border: var(--border);
+  padding: 10px;
+  font: 13px var(--mono);
+  margin-bottom: 12px;
+}
+.card-actions { display: flex; gap: 10px; }
+.card button {
+  border: var(--border);
+  background: var(--paper);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 700 12px var(--mono); letter-spacing: 0.08em;
+  padding: 8px 14px; cursor: pointer;
+}
+.card button:hover { background: var(--marker); color: var(--panel); }
+.card button:active { transform: translate(3px, 3px); box-shadow: none; }
+.card button.ghost { background: var(--panel); }

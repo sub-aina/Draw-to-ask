@@ -1,0 +1,29 @@
+{
+  "name": "draw-to-ask",
+  "productName": "Draw to Ask",
+  "version": "0.1.0",
+  "description": "Hotkey → screen freezes → circle anything → get an answer as a sticky note.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "spike": "electron . --spike",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.drawtoask.app",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "Draw to Ask captures the screen so you can circle a region and ask a question about it."
+      }
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
