@@ -1,138 +1,194 @@
-# Draw to Ask
+# ✏️ Draw to Ask
 
-Hotkey → screen freezes → circle anything → the region (with your ink stamped
-on it) goes to a vision model → the answer slaps onto your screen as a
-Neo-Brutalist sticky note. Zero build step, plain Electron + vanilla JS.
+**Circle anything on your screen. Get an answer as a sticky note.**
+
+Press a hotkey → the screen freezes → draw a circle around anything — an error
+message, a chart, foreign text, a weird UI button — → a vision model answers on
+a Neo-Brutalist sticky note, streamed in as it thinks. Type a question if you
+have one; if you don't, the model infers it from what you circled.
+
+Zero build step. Plain Electron + vanilla JS. No SDK dependencies — the API
+clients are ~100 lines of `fetch` each.
 
 ```
-Cmd/Ctrl+Shift+D ──▶ capture display under cursor (BEFORE overlay shows)
+Ctrl/Cmd+Shift+D ──▶ capture the display under the cursor (BEFORE overlay shows)
                  ──▶ frozen frame + crosshair, draw with the marker
                  ──▶ ask bar appears near your stroke (type or just Enter)
-                 ──▶ screen unfreezes, sticky note streams the answer in
-                 ──▶ note is draggable; everything else is click-through
+                 ──▶ sticky note streams the answer in
+                 ──▶ drag it around, save it as Markdown, or dismiss it
 ```
+
+## Features
+
+- 🖊️ **Draw, don't describe** — the model literally sees what you circled,
+  ink included
+- 🧠 **Implicit questions** — circle an error and it explains the fix; circle
+  a chart and it explains the trend; circle foreign text and it translates
+- ⚡ **Streaming answers** — the note types itself in
+- 💾 **Save notes** — one click writes the answer as a `.md` file
+- 🔌 **Swappable backends** — ships with Groq (free tier); Ollama, OpenRouter,
+  Anthropic, and Gemini clients included or one env var away
+- 🐧🍎🪟 **Linux (X11 & Wayland), macOS, Windows**
 
 ## Quick start
 
 ```bash
+git clone <this-repo> && cd draw-to-ask
 npm install
-export ANTHROPIC_API_KEY=sk-ant-...   # or paste it into the in-app prompt
+export GROQ_API_KEY=gsk_...   # free key from console.groq.com/keys — or paste it in-app
 npm start
 ```
 
-Press **Cmd+Shift+D** (macOS) / **Ctrl+Shift+D** (Windows). Esc bails out of
-draw mode at any point. Pressing the hotkey again cancels the current session
-or starts a new one.
+| Key | Action |
+|---|---|
+| **Ctrl+Shift+D** (⌘⇧D on macOS) | Freeze the screen and draw. Press again to cancel/restart. |
+| **Enter** | Ask (with or without a typed question) |
+| **Esc** | Leave draw mode / dismiss all notes |
+| **Ctrl+Shift+Q** (⌘⇧Q) | Quit the app entirely |
+| **⤓** on a note | Save the answer as Markdown |
+| **✕** on a note | Dismiss the note |
+
+The app is a background utility — no window, no dock icon. It lives on the
+hotkey until you quit it.
+
+## Choosing a model backend
+
+The default backend is **Groq's free tier** running Llama 4 Scout (open-weight,
+multimodal, very fast, no credit card required). Because `src/main/groq.js`
+speaks the standard OpenAI Chat Completions shape, the same file works for any
+OpenAI-compatible endpoint:
+
+| Backend | How | Notes |
+|---|---|---|
+| **Groq** (default) | `GROQ_API_KEY=gsk_...` | Free tier, fast, key from [console.groq.com](https://console.groq.com/keys) |
+| **Ollama** (local) | `GROQ_API_BASE=http://localhost:11434/v1`, model e.g. `llama3.2-vision` | Fully private — nothing leaves your machine. Fits a screen-capture tool. |
+| **OpenRouter** | `GROQ_API_BASE=https://openrouter.ai/api/v1` + their key | Free-tier vision models available |
+| **Anthropic** | swap the `require` in `main.js` to `./anthropic` | Strongest vision; `src/main/anthropic.js` is ready to go |
+| **Gemini** | swap the `require` to `./gemini` | Free tier is geo-restricted in some countries |
+
+The model name persists in `settings.json` under the app's `userData` dir
+(`~/.config/draw-to-ask/` on Linux, `~/Library/Application Support/draw-to-ask/`
+on macOS, `%APPDATA%/draw-to-ask/` on Windows).
 
 ## Spike the risky part first
 
-The biggest risk is OS capture permissions, so there's a dedicated mode that
+The biggest platform risk is OS capture permissions, so there's a mode that
 runs one capture→overlay cycle immediately on launch:
 
 ```bash
 npm run spike
 ```
 
-If you see your own frozen screen with a crosshair, the whole risky layer
-works and everything else is plain web code.
+If you see your own frozen screen with a crosshair, the risky layer works and
+everything else is plain web code.
+
+## Platform notes
+
+### Linux
+
+Works on **X11 and Wayland** (tested on KDE Plasma/Arch). Wayland's security
+model required some adaptations, all built in:
+
+- **Capture goes through the desktop portal** (PipeWire). Pressing the hotkey
+  pops your compositor's own "choose what to share" picker — the same one
+  Google Meet uses. Pick a screen to freeze everything, or a single window to
+  freeze just it (letterboxed). This is the only way to capture native Wayland
+  windows.
+- **Notes keep the frozen frame up** while you read. Wayland/X11 don't support
+  Electron's per-pixel click-through forwarding, so instead of floating notes
+  over a live-but-unclickable desktop, the app stays frozen for context.
+  **Esc** returns you to your desktop.
+- **Saving skips the file picker** — native dialogs misbehave under a
+  fullscreen always-on-top overlay on Wayland — and writes straight to
+  `~/Downloads/draw-to-ask-<timestamp>.md`, showing the path on the note.
+- Transparency trouble on broken GPU drivers: `DRAW_TO_ASK_NO_GPU=1 npm start`.
 
 ### macOS permission facts (this is where demos die)
 
 - Screen capture requires **System Settings → Privacy & Security → Screen
   Recording**. The app appears in that list only *after* its first capture
-  attempt — so run the spike once, grant, then relaunch.
-- **The toggle does nothing until the app is fully quit and reopened.** This
-  is the #1 "it returns a black/empty image" cause; `capture.js` detects the
+  attempt — run the spike once, grant, then relaunch.
+- **The toggle does nothing until the app is fully quit and reopened.** This is
+  the #1 "it returns a black/empty image" cause; `capture.js` detects the
   empty-image case and says so.
 - During development the permission attaches to **Electron.app / Electron
-  Helper**, not your app name. If capture mysteriously breaks after
-  `npm install` updates Electron, re-grant it.
-- **macOS 15 Sequoia re-prompts roughly monthly** ("…requesting to bypass the
-  system private window picker…"). There is no supported developer opt-out;
-  Apple's Persistent Content Capture entitlement exists but is undocumented
-  and gated. Budget for this in UX copy (the app's permission card mentions
-  it) and don't chase it as a bug.
-- Sequoia also shows a purple/orange menu-bar indicator during capture —
-  expected, harmless.
+  Helper**, not your app name. If capture breaks after `npm install` updates
+  Electron, re-grant it.
+- **macOS 15 Sequoia re-prompts roughly monthly.** There is no supported
+  developer opt-out — budget for it in UX copy, don't chase it as a bug.
+- Sequoia shows a purple/orange menu-bar indicator during capture — expected.
 
 ### Windows
 
-No permission prompt; works on Win10/11 out of the box. Two known quirks:
+No permission prompt; works on Win10/11 out of the box.
 
-- Transparent windows need DWM (always on in 10/11). On machines with broken
-  GPU drivers, transparency can fail — launch with
-  `DRAW_TO_ASK_NO_GPU=1 npm start` to test the software path.
-- Don't use `fullscreen: true` for the overlay — it breaks transparency. We
-  size the frameless window to the display's bounds instead (already done).
+- Transparent windows need DWM (always on in 10/11). On broken GPU drivers,
+  try `DRAW_TO_ASK_NO_GPU=1 npm start`.
+- Don't use `fullscreen: true` for the overlay — it breaks transparency. The
+  frameless window is sized to the display's bounds instead (already done).
 
 ## How the tricky bits work
 
-**The "freeze" is the screenshot.** We capture *before* showing the overlay,
-then display that still frame full-screen inside the overlay. Three problems
-solved at once: the overlay never photobombs its own capture, the screen
-visibly "freezes", and stroke coordinates map 1:1 onto the image
-(CSS px × `display.scaleFactor` = device px).
+**The "freeze" is the screenshot.** Captured *before* the overlay shows, then
+displayed full-screen inside it. Three problems solved at once: the overlay
+never photobombs its own capture, the screen visibly "freezes", and stroke
+coordinates map 1:1 onto the image (CSS px × `display.scaleFactor` = device px).
+Captures that don't match the display (a picked window on Wayland) are
+letterboxed onto a display-sized canvas so the crop math never changes.
 
 **Full-res capture via `desktopCapturer` thumbnails.** Modern Electron only
-allows `desktopCapturer` in the **main process**; asking for a thumbnail sized
-to the display's device pixels yields a crisp still. (`getSources` renders a
-thumbnail for *every* display at that size — a small cost per hotkey press;
-if you ever need continuous capture, switch to a `getUserMedia` stream.)
+allows `desktopCapturer` in the main process; requesting a thumbnail sized to
+the display's device pixels yields a crisp still frame — no `getUserMedia`
+stream needed for a single frame.
 
-**Click-through with hover exceptions.** After the answer arrives the window
-goes `setIgnoreMouseEvents(true, { forward: true })`: clicks pass through to
-whatever's underneath, but mousemove still reaches the page, so hovering a
-sticky note flips the window interactive (`mouseenter`) and leaving flips it
-back (`mouseleave`). The `forward` option works on **macOS and Windows**
-(older Electron issues claiming macOS lacks it are outdated).
+**Click-through with hover exceptions (macOS/Windows).** After the answer
+arrives, `setIgnoreMouseEvents(true, { forward: true })` lets clicks pass
+through to whatever's underneath while mousemove still reaches the page — so
+hovering a note flips the window interactive and leaving flips it back.
+(`forward` is macOS/Windows-only, hence the Linux behavior above.)
 
 **The model sees your ink.** The crop is the stroke bounding box + 32 px
-padding, with the marker stroke composited on top, long edge capped at
-2048 device px. The system prompt tells the model to answer the *implicit*
-question about the marked element (error → fix, chart → explain, foreign
-text → translate) unless you typed an explicit one.
+padding with the marker stroke composited on top, long edge capped at 2048
+device px. The system prompt tells the model to answer the *implicit* question
+about the marked element unless you typed an explicit one.
 
-**Streaming.** The main process calls `POST /v1/messages` with `stream: true`
-and hand-parses the SSE (`content_block_delta` → `text_delta`), forwarding
-chunks over IPC so the note types itself in. Default model is
-`claude-sonnet-4-6` (strong vision, fast); change it in
-`~/Library/Application Support/draw-to-ask/settings.json` (macOS) /
-`%APPDATA%/draw-to-ask/settings.json` (Windows), or in
-`src/main/anthropic.js`.
+**Streaming.** The main process calls the chat endpoint with `stream: true`
+and hand-parses the SSE, forwarding text deltas over IPC so the note types
+itself in.
 
-**Security posture.** Renderer is sandboxed with `contextIsolation`; the API
-key never enters the renderer — crops go up over IPC, text streams down. The
-key is stored plaintext in `userData` (same trust level as `.env`); upgrade
-to Electron `safeStorage` before shipping.
+**Security posture.** The renderer is sandboxed with `contextIsolation`; the
+API key never enters it — image crops go up over IPC, answer text streams
+down. The key is stored plaintext in `userData` (same trust level as a
+`.env`); upgrade to Electron `safeStorage` before shipping.
 
 ## File map
 
 ```
 src/
   main/
-    main.js        app lifecycle, hotkey, overlay window, IPC
-    capture.js     desktopCapturer + macOS permission handling
-    anthropic.js   vision call + SSE streaming (no SDK dependency)
+    main.js        app lifecycle, hotkeys, overlay window, IPC, note saving
+    capture.js     desktopCapturer + portal/permission handling
+    groq.js        default backend — OpenAI-compatible vision + SSE streaming
+    anthropic.js   alternate backend: Anthropic Messages API
+    gemini.js      alternate backend: Google Gemini
     settings.js    API key/model persistence
-  preload.js       contextBridge surface
+  preload.js       contextBridge surface (the only main↔renderer bridge)
   renderer/
     index.html     overlay shell (frozen frame, ink canvas, ask bar, cards)
-    overlay.css    Neo-Brutalist tokens: sticky yellow, hard 6px shadows,
-                   3px borders, IBM Plex Mono (system-mono fallback)
-    overlay.js     state machine: frozen → notes, crop+composite, notes
+    overlay.css    Neo-Brutalist tokens: sticky yellow, hard shadows, mono type
+    overlay.js     state machine: frozen → notes; crop+composite; sticky notes
 ```
 
-## Deliberate MVP cuts (and where they'd go)
+## Roadmap / deliberate MVP cuts
 
-- **Multi-monitor**: we capture whichever display the cursor is on (better
-  than "primary only"), but notes don't migrate across displays.
-- **History**: notes die on close. Persist `{crop, question, answer}` to a
-  JSON log in `userData` when you want it.
-- **IBM Plex Mono**: referenced but not bundled (keeps the repo
-  network-free). Drop the `.woff2` files in `src/renderer/fonts/` and add
-  `@font-face` to make the aesthetic exact everywhere.
-- **safeStorage** for the key, code-signing + notarization for distribution
-  (unsigned macOS builds get a worse permission UX).
+- **Append-to-journal saving** — one running `.md` of all answers (drop it in
+  an Obsidian vault) instead of a file per note
+- **Copy to clipboard** button on notes
+- **History** — persist `{crop, question, answer}` to a JSON log in `userData`
+- **Multi-monitor note migration** (capture already follows the cursor's display)
+- **safeStorage** for the key; code-signing + notarization for distribution
+- **Bundled IBM Plex Mono** (`src/renderer/fonts/` + `@font-face`) — currently
+  falls back to system mono to keep the repo network-free
 
 ## Demo script (zero narration needed)
 
@@ -140,4 +196,5 @@ src/
    Enter. The fix streams onto a sticky note next to it.
 2. Open a dense chart in a PDF. Hotkey, circle the weird part, type
    "why the spike?", Enter.
-3. Drag the note somewhere satisfying. Click ✕. Screen recording done.
+3. Drag the note somewhere satisfying, hit ⤓ to keep the answer. Click ✕.
+   Screen recording done.
