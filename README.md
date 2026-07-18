@@ -198,6 +198,22 @@ src/
     overlay.js     state machine: frozen → notes; crop+composite; sticky notes
 ```
 
+## Website
+
+The landing page lives in [`site/`](site/) as a self-contained static page —
+`site/index.html`, no build step, no dependencies. (`Draw to Ask Warm.dc.html`
+in the repo root is the editable design-tool source; `site/index.html` is the
+rendered, deployable output.)
+
+Deploy it by pointing your static host at the **folder**, e.g. with
+[Surge](https://surge.sh):
+
+```bash
+surge site/ draw-to-ask.surge.sh
+```
+
+Deploying the repo root instead serves a 404 — there's no `index.html` there.
+
 ## Roadmap / deliberate MVP cuts
 
 - **Append-to-journal saving** — one running `.md` of all answers (drop it in
