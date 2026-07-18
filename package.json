@@ -1,17 +1,37 @@
 {
-  "name": "draw-to-ask",
+  "name": "drawtoask",
   "productName": "Draw to Ask",
   "version": "0.1.0",
   "description": "Hotkey → screen freezes → circle anything → get an answer as a sticky note.",
   "main": "src/main/main.js",
+  "bin": {
+    "drawtoask": "bin/drawtoask.js"
+  },
+  "files": [
+    "src/",
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "electron",
+    "screenshot",
+    "annotation",
+    "ai",
+    "vision",
+    "productivity"
+  ],
   "scripts": {
     "start": "electron .",
     "spike": "electron . --spike",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win"
   },
+  "dependencies": {
+    "electron": "^35.0.0"
+  },
   "devDependencies": {
-    "electron": "^35.0.0",
     "electron-builder": "^25.0.0"
   },
   "build": {

@@ -1,0 +1,63 @@
+name: Build installers
+
+# Native .dmg / .exe / .AppImage builds via electron-builder.
+#
+# The app ships primarily as a global npm package (`npm install -g drawtoask`),
+# which requires `electron` to live in "dependencies". electron-builder refuses
+# to run while electron is a runtime dependency, so this workflow moves it to
+# "devDependencies" for the build only. The CI checkout is throwaway, so the
+# edited package.json is never committed back — the published npm package keeps
+# electron in "dependencies".
+
+on:
+  push:
+    tags: ['v*']        # build installers when you push a release tag
+  workflow_dispatch: {} # ...or run it manually from the Actions tab
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            flag: --mac
+          - os: windows-latest
+            flag: --win
+          - os: ubuntu-latest
+            flag: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Build-only: electron-builder rejects electron in "dependencies", so move
+      # it to devDependencies here. Not committed — this is a disposable runner.
+      - name: Make electron a devDependency (build-only)
+        shell: bash
+        run: |
+          npm pkg delete dependencies.electron
+          npm pkg set devDependencies.electron="^35.0.0"
+
+      - name: Install
+        run: npm install
+
+      - name: Build installer
+        shell: bash
+        run: npx electron-builder ${{ matrix.flag }} --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawtoask-${{ matrix.os }}
+          if-no-files-found: ignore
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.zip

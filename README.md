@@ -32,12 +32,31 @@ Ctrl/Cmd+Shift+D ──▶ capture the display under the cursor (BEFORE overlay 
 
 ## Quick start
 
+Install it globally from npm (needs Node ≥18 on your PATH — the install pulls a
+prebuilt Electron binary):
+
 ```bash
-git clone <this-repo> && cd draw-to-ask
+npm install -g drawtoask
+drawtoask
+```
+
+Give it a Groq API key the first time — paste it into the in-app overlay, or set
+it in your environment before launching:
+
+```bash
+export GROQ_API_KEY=gsk_...   # free key from console.groq.com/keys
+```
+
+<details>
+<summary><b>Run from source instead</b></summary>
+
+```bash
+git clone https://github.com/sub-aina/Draw-to-ask && cd Draw-to-ask
 npm install
-export GROQ_API_KEY=gsk_...   # free key from console.groq.com/keys — or paste it in-app
+export GROQ_API_KEY=gsk_...   # or paste it in-app
 npm start
 ```
+</details>
 
 | Key | Action |
 |---|---|
@@ -53,8 +72,8 @@ hotkey until you quit it.
 
 ## Choosing a model backend
 
-The default backend is **Groq's free tier** running Llama 4 Scout (open-weight,
-multimodal, very fast, no credit card required). Because `src/main/groq.js`
+The default backend is **Groq's free tier** running Qwen 3.6 27B (`qwen/qwen3.6-27b`
+— multimodal, very fast, no credit card required). Because `src/main/groq.js`
 speaks the standard OpenAI Chat Completions shape, the same file works for any
 OpenAI-compatible endpoint:
 
@@ -67,8 +86,8 @@ OpenAI-compatible endpoint:
 | **Gemini** | swap the `require` to `./gemini` | Free tier is geo-restricted in some countries |
 
 The model name persists in `settings.json` under the app's `userData` dir
-(`~/.config/draw-to-ask/` on Linux, `~/Library/Application Support/draw-to-ask/`
-on macOS, `%APPDATA%/draw-to-ask/` on Windows).
+(`~/.config/Draw to Ask/` on Linux, `~/Library/Application Support/Draw to Ask/`
+on macOS, `%APPDATA%/Draw to Ask/` on Windows).
 
 ## Spike the risky part first
 

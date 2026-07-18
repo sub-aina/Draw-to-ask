@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const API_BASE = process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1';
-const DEFAULT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // open-weight, multimodal
+const DEFAULT_MODEL = 'qwen/qwen3.6-27b'; // multimodal (replaces deprecated llama-4-scout)
 
 const SYSTEM_PROMPT = `You are the brain behind "Draw to Ask", a screen annotation tool.
 The user pressed a hotkey, their screen froze, and they circled or scribbled on
@@ -54,6 +54,9 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
       model: model || DEFAULT_MODEL,
       max_tokens: 700,
       stream: true,
+      // Qwen 3.6 is a reasoning model; skip the think phase so the sticky note
+      // gets a direct answer (faster, and no <think> leaking into the note).
+      reasoning_effort: 'none',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userContent },
@@ -73,6 +76,48 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
   let buffer = '';
   let full = '';
 
+  // Safety net: if an overridden model ignores reasoning_effort and emits a
+  // <think>…</think> block inline, strip it before it reaches the note. State
+  // persists across deltas, and a partial tag straddling a chunk is carried over.
+  const OPEN = '<think>';
+  const CLOSE = '</think>';
+  let inThink = false;
+  let carry = '';
+  const longestTagPrefixTail = (text, tag) => {
+    for (let n = Math.min(tag.length - 1, text.length); n > 0; n--) {
+      if (tag.startsWith(text.slice(text.length - n))) return n;
+    }
+    return 0;
+  };
+  const stripThink = (chunk) => {
+    let text = carry + chunk;
+    carry = '';
+    let out = '';
+    while (text) {
+      if (!inThink) {
+        const i = text.indexOf(OPEN);
+        if (i === -1) {
+          const keep = longestTagPrefixTail(text, OPEN);
+          out += text.slice(0, text.length - keep);
+          carry = text.slice(text.length - keep);
+          break;
+        }
+        out += text.slice(0, i);
+        text = text.slice(i + OPEN.length);
+        inThink = true;
+      } else {
+        const i = text.indexOf(CLOSE);
+        if (i === -1) {
+          carry = text.slice(text.length - longestTagPrefixTail(text, CLOSE));
+          break;
+        }
+        text = text.slice(i + CLOSE.length);
+        inThink = false;
+      }
+    }
+    return out;
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -91,10 +136,10 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
 
       if (evt.error) throw new Error(evt.error.message || 'Stream error');
 
-      const delta = evt.choices?.[0]?.delta?.content;
-      if (delta) {
-        full += delta;
-        onChunk?.(delta);
+      const visible = stripThink(evt.choices?.[0]?.delta?.content || '');
+      if (visible) {
+        full += visible;
+        onChunk?.(visible);
       }
     }
   }

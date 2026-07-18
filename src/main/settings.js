@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FILE = () => path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { apiKey: '', model: 'meta-llama/llama-4-scout-17b-16e-instruct' };
+const DEFAULTS = { apiKey: '', model: 'qwen/qwen3.6-27b' };
 
 function loadSettings() {
   try {
