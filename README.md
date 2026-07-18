@@ -122,19 +122,35 @@ model required some adaptations, all built in:
   `~/Downloads/draw-to-ask-<timestamp>.md`, showing the path on the note.
 - Transparency trouble on broken GPU drivers: `DRAW_TO_ASK_NO_GPU=1 npm start`.
 
-### macOS permission facts (this is where demos die)
+macOS blocks screen capture until you grant **Screen & System Audio Recording**
+permission. This is where first-run fails, so do it in this order:
 
-- Screen capture requires **System Settings → Privacy & Security → Screen
-  Recording**. The app appears in that list only *after* its first capture
-  attempt — run the spike once, grant, then relaunch.
-- **The toggle does nothing until the app is fully quit and reopened.** This is
-  the #1 "it returns a black/empty image" cause; `capture.js` detects the
-  empty-image case and says so.
-- During development the permission attaches to **Electron.app / Electron
-  Helper**, not your app name. If capture breaks after `npm install` updates
-  Electron, re-grant it.
-- **macOS 15 Sequoia re-prompts roughly monthly.** There is no supported
-  developer opt-out — budget for it in UX copy, don't chase it as a bug.
+1. **Trigger one capture attempt** so macOS knows the app wants the screen:
+   ```bash
+   drawtoask --spike     # global install
+   # or, from source:  npm run spike
+   ```
+2. Open **System Settings → Privacy & Security → Screen & System Audio
+   Recording**.
+3. Click **+** (or the toggle) and **add your terminal app** — `Terminal`,
+   or `iTerm`, or whichever app you launched `drawtoask` from. Because the app
+   runs as a child process of the terminal, macOS attributes the capture
+   permission to the **terminal**, not to "Draw to Ask" or "Electron". Enable
+   its toggle.
+4. **Fully quit and reopen the terminal**, then run `drawtoask` again. The
+   permission does nothing until the terminal is restarted — this is the #1
+   "it returns a black/empty image" cause (`capture.js` detects the empty frame
+   and says so).
+
+Notes:
+
+- If you instead run a packaged **`.dmg` build**, the permission attaches to
+  **Draw to Ask** directly (add that app in step 3 instead of the terminal).
+- Running from source in dev, it may show up as **Electron / Electron Helper** —
+  same idea, grant whatever launched it. If capture breaks after an
+  `npm install` bumps Electron, re-grant it.
+- **macOS 15 Sequoia re-prompts roughly monthly.** There's no supported
+  developer opt-out — expect it, don't chase it as a bug.
 - Sequoia shows a purple/orange menu-bar indicator during capture — expected.
 
 ### Windows

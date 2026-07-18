@@ -14,6 +14,10 @@
 const API_BASE = process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1';
 const DEFAULT_MODEL = 'qwen/qwen3.6-27b'; // multimodal (replaces deprecated llama-4-scout)
 
+// Transient upstream failures worth retrying (rate limit + gateway/capacity).
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const MAX_RETRIES = 4; // up to 5 attempts total (~6s worst-case backoff)
+
 const SYSTEM_PROMPT = `You are the brain behind "Draw to Ask", a screen annotation tool.
 The user pressed a hotkey, their screen froze, and they circled or scribbled on
 something with a marker. You receive ONLY the cropped region around their ink,
@@ -44,27 +48,44 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
     },
   ];
 
-  const res = await fetch(`${API_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: model || DEFAULT_MODEL,
-      max_tokens: 700,
-      stream: true,
-      // Qwen 3.6 is a reasoning model; skip the think phase so the sticky note
-      // gets a direct answer (faster, and no <think> leaking into the note).
-      reasoning_effort: 'none',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent },
-      ],
-    }),
+  const body = JSON.stringify({
+    model: model || DEFAULT_MODEL,
+    max_tokens: 700,
+    stream: true,
+    // Qwen 3.6 is a reasoning model; skip the think phase so the sticky note
+    // gets a direct answer (faster, and no <think> leaking into the note).
+    reasoning_effort: 'none',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userContent },
+    ],
   });
 
-  if (!res.ok) {
+  // Free-tier vision models are frequently "over capacity" (503) or rate-limited
+  // (429) — transient blips the server explicitly asks us to retry with backoff.
+  // Retry those silently before the connection opens; surface everything else.
+  let res;
+  for (let attempt = 0; ; attempt++) {
+    res = await fetch(`${API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body,
+    });
+
+    if (res.ok) break;
+
+    if (RETRYABLE_STATUS.has(res.status) && attempt < MAX_RETRIES) {
+      const retryAfter = Number(res.headers.get('retry-after')) * 1000;
+      const backoff = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter                                       // honor server hint
+        : Math.min(8000, 400 * 2 ** attempt) + Math.random() * 250; // else 0.4s,0.8s,1.6s,3.2s + jitter
+      await new Promise((resolve) => setTimeout(resolve, backoff));
+      continue;
+    }
+
     let detail = '';
     try { detail = (await res.json())?.error?.message || ''; } catch {}
     throw new Error(`API ${res.status}: ${detail || res.statusText}`);
