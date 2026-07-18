@@ -114,6 +114,7 @@ async function startSession() {
     scaleFactor: display.scaleFactor,
     displayBounds: display.bounds,
     hasApiKey: Boolean(settings.apiKey || process.env.GROQ_API_KEY),
+    seenWelcome: Boolean(settings.seenWelcome),
     // No click-through forwarding on Linux → the overlay blocks the desktop
     // anyway while notes are open, so keep the frozen image up for context
     // instead of "dropping" the user onto a live screen they can't click.
@@ -189,6 +190,12 @@ ipcMain.handle('settings:set-api-key', (_e, key) => {
   settings.apiKey = String(key || '').trim();
   saveSettings(settings);
   return true;
+});
+
+ipcMain.on('settings:mark-welcome-seen', () => {
+  if (settings.seenWelcome) return;
+  settings.seenWelcome = true;
+  saveSettings(settings);
 });
 
 ipcMain.on('permissions:open-settings', () => openScreenRecordingSettings());

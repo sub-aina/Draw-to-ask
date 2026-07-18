@@ -18,6 +18,8 @@ const el = {
   frozen: document.getElementById('frozen'),
   ink: document.getElementById('ink'),
   hint: document.getElementById('hint'),
+  welcomecard: document.getElementById('welcomecard'),
+  welcomeok: document.getElementById('welcomeok'),
   askbar: document.getElementById('askbar'),
   question: document.getElementById('question'),
   askbtn: document.getElementById('askbtn'),
@@ -41,6 +43,7 @@ let state = 'idle';
 let scaleFactor = 1;
 let screenshot = null;       // HTMLImageElement of the frozen frame (device px)
 let hasApiKey = false;
+let seenWelcome = true;      // suppress the welcome card until main says otherwise
 let keepFrozen = false;      // Linux: keep the frozen frame up while notes show
 
 let strokes = [];            // strokes of the CURRENT session: [{points:[{x,y}]}]
@@ -83,9 +86,10 @@ function redraw() {
 
 // ── Session lifecycle (driven by main) ──────────────────────────────────────
 
-api.onSessionStart(({ dataUrl, scaleFactor: sf, hasApiKey: keyed, keepFrozen: kf }) => {
+api.onSessionStart(({ dataUrl, scaleFactor: sf, hasApiKey: keyed, seenWelcome: sw, keepFrozen: kf }) => {
   scaleFactor = sf;
   hasApiKey = keyed;
+  seenWelcome = sw !== false; // undefined (older main) → treat as seen
   keepFrozen = Boolean(kf);
   strokes = [];
   hideAskbar();
@@ -102,12 +106,29 @@ api.onSessionStart(({ dataUrl, scaleFactor: sf, hasApiKey: keyed, keepFrozen: kf
     el.frozen.src = fitted.dataUrl || dataUrl;
     document.body.classList.add('frozen');
     document.body.classList.remove('notes-mode');
-    el.hint.hidden = false;
     state = 'frozen';
     sizeCanvas();
+
+    // First-ever freeze: explain the flow before showing the draw hint.
+    if (!seenWelcome) {
+      el.hint.hidden = true;
+      el.welcomecard.hidden = false;
+    } else {
+      el.hint.hidden = false;
+    }
   };
   img.src = dataUrl;
 });
+
+// Dismiss the welcome card and remember it, so it only ever shows once.
+function dismissWelcome() {
+  if (el.welcomecard.hidden) return;
+  el.welcomecard.hidden = true;
+  seenWelcome = true;
+  api.markWelcomeSeen();
+  if (state === 'frozen') el.hint.hidden = false;
+}
+el.welcomeok.addEventListener('click', dismissWelcome);
 
 // Contain-fit a capture into the display's device-px box (no-op when it
 // already matches, i.e. a normal full-screen grab).
@@ -142,6 +163,7 @@ function exitDrawMode() {
   strokes = [];
   hideAskbar();
   el.hint.hidden = true;
+  el.welcomecard.hidden = true;
   el.keycard.hidden = true;
   el.permcard.hidden = true;
 
@@ -169,6 +191,7 @@ function exitDrawMode() {
 
 el.ink.addEventListener('pointerdown', (e) => {
   if (state !== 'frozen' || !screenshot) return;
+  if (!el.welcomecard.hidden || !el.keycard.hidden || !el.permcard.hidden) return; // modal open
   drawing = true;
   el.hint.hidden = true;
   hideAskbar();
@@ -487,6 +510,7 @@ el.permclose.addEventListener('click', () => exitDrawMode());
 
 addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  if (!el.welcomecard.hidden) { dismissWelcome(); return; }
   if (!el.keycard.hidden) { el.keycard.hidden = true; return; }
   if (state === 'frozen') { exitDrawMode(); return; }
   if (state === 'notes') {

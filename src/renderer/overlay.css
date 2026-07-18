@@ -1,18 +1,48 @@
 /* ────────────────────────────────────────────────────────────────────────────
-   Draw to Ask — Neo-Brutalist overlay
-   Tokens: paper #FFF9DB (sticky yellow) · ink #101010 · marker #FF3D00
-           panel #FFFFFF · shadow = hard 6px offset, zero blur
-   Type: IBM Plex Mono if installed, honest mono fallbacks otherwise.
+   Draw to Ask — overlay (warm / rounded brand, matches the landing page)
+   Tokens: bg #F5F1EA · paper #FBF7F0 · ink #1A1A1A · orange #FF6B35
+           soft drop shadows · generous radii · Fredoka + DM Sans
    ──────────────────────────────────────────────────────────────────────── */
 
+@font-face {
+  font-family: "Fredoka";
+  font-style: normal;
+  font-weight: 400 700;         /* variable file covers the range */
+  font-display: swap;
+  src: url("fonts/fredoka-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url("fonts/dmsans-latin.woff2") format("woff2");
+}
+
 :root {
-  --paper: #fff9db;
+  --bg: #f5f1ea;
+  --paper: #fbf7f0;
   --panel: #ffffff;
-  --ink: #101010;
-  --marker: #ff3d00;
-  --shadow: 6px 6px 0 var(--ink);
-  --border: 3px solid var(--ink);
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a44;
+  --orange: #ff6b35;
+  --orange-dark: #e2531f;
+  --line: #e8dfcf;
+  --danger: #e5484d;
+  --danger-bg: #fdecea;
+  --danger-ink: #9f1d1a;
+  --ok-bg: #e6f4ea;
+  --ok-ink: #1c6b3f;
+
+  --radius: 22px;
+  --radius-sm: 14px;
+  --pill: 999px;
+  --shadow: 0 18px 40px rgba(26, 26, 26, 0.20);
+  --shadow-sm: 0 8px 22px rgba(26, 26, 26, 0.14);
+
+  --display: "Fredoka", system-ui, sans-serif;
+  --body: "DM Sans", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,9 +51,11 @@ html, body {
   width: 100%; height: 100%;
   background: transparent;
   overflow: hidden;
-  font-family: var(--mono);
+  font-family: var(--body);
   color: var(--ink);
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* Frozen screenshot fills the display 1:1 (image is device-px, element is CSS-px) */
@@ -32,10 +64,7 @@ html, body {
   width: 100%; height: 100%;
   display: none;
 }
-body.frozen #frozen { display: block; }
-
-/* Slight veil so "frozen" is legible as a mode, ink pops */
-body.frozen #frozen { filter: brightness(0.92) saturate(0.85); }
+body.frozen #frozen { display: block; filter: brightness(0.9) saturate(0.88); }
 
 #ink {
   position: fixed; inset: 0;
@@ -48,98 +77,113 @@ body.notes-mode #ink { pointer-events: none; cursor: default; }
 
 /* ── Hint chip ─────────────────────────────────────────────────────────── */
 .chip {
-  position: fixed; top: 28px; left: 50%;
+  position: fixed; top: 30px; left: 50%;
   transform: translateX(-50%);
-  background: var(--ink); color: var(--paper);
-  padding: 8px 16px;
-  font-size: 12px; letter-spacing: 0.12em;
-  border: 3px solid var(--paper);
-  box-shadow: 4px 4px 0 rgba(0,0,0,.35);
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--ink); color: var(--bg);
+  padding: 11px 20px;
+  border-radius: var(--pill);
+  font-family: var(--body);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+  box-shadow: var(--shadow-sm);
+}
+.chip::before {
+  content: "";
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--orange);
 }
 
 /* ── Ask bar ───────────────────────────────────────────────────────────── */
-#askbar { position: fixed; width: 380px; }
+#askbar { position: fixed; width: 384px; }
 
 .askbar-inner {
   display: flex; align-items: stretch;
   background: var(--panel);
-  border: var(--border);
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .askbar-glyph {
   display: grid; place-items: center;
-  width: 40px;
-  background: var(--marker); color: var(--panel);
-  font-weight: 700; font-size: 20px;
-  border-right: var(--border);
+  width: 46px;
+  background: var(--orange); color: #fff;
+  font-family: var(--display);
+  font-weight: 600; font-size: 20px;
 }
 #question {
   flex: 1; min-width: 0;
   border: 0; outline: none;
-  padding: 12px;
-  font: 14px var(--mono);
+  padding: 14px;
+  font: 500 14.5px var(--body);
   background: var(--panel); color: var(--ink);
 }
-#question::placeholder { color: #9a9a9a; }
+#question::placeholder { color: #a9a297; font-weight: 500; }
 #askbtn {
-  border: 0; border-left: var(--border);
-  background: var(--paper);
-  font: 700 13px var(--mono); letter-spacing: 0.08em;
-  padding: 0 16px; cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: var(--orange);
+  font: 600 13px var(--body); letter-spacing: 0.04em;
+  padding: 0 20px; cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
 }
-#askbtn:hover { background: var(--marker); color: var(--panel); }
-#askbtn:focus-visible, #question:focus-visible { outline: 3px dashed var(--marker); outline-offset: -3px; }
+#askbtn:hover { background: var(--orange); color: #fff; }
+#askbtn:focus-visible, #question:focus-visible { outline: 3px solid var(--orange); outline-offset: -3px; }
 
 .askbar-hint {
-  margin-top: 6px;
-  font-size: 10px; letter-spacing: 0.1em;
-  color: var(--panel);
-  text-shadow: 1px 1px 0 var(--ink), -1px 1px 0 var(--ink), 1px -1px 0 var(--ink), -1px -1px 0 var(--ink);
+  margin-top: 9px; text-align: center;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
 }
 
 /* ── Sticky note (the signature element) ───────────────────────────────── */
 .note {
   position: fixed;
-  width: 320px; max-width: 44vw;
+  width: 328px; max-width: 44vw;
   background: var(--paper);
-  border: var(--border);
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
-  animation: slap 140ms cubic-bezier(.2,1.4,.4,1);
+  overflow: hidden;
+  animation: rise 200ms cubic-bezier(.2,.9,.3,1);
 }
-@keyframes slap {
-  from { transform: scale(1.06) rotate(-1.2deg); }
-  to   { transform: scale(1)    rotate(0); }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .note { animation: none; }
 }
 
 .note-head {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px;
-  background: var(--ink); color: var(--paper);
-  font-size: 10px; letter-spacing: 0.14em;
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 14px;
+  background: var(--orange); color: var(--ink);
+  font-family: var(--display);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
   cursor: grab;
 }
 .note-head:active { cursor: grabbing; }
 .note-head .dot {
-  width: 10px; height: 10px;
-  background: var(--marker);
-  border: 2px solid var(--paper);
+  width: 11px; height: 11px; border-radius: 3px;
+  background: var(--ink);
   flex: none;
 }
 .note-head .spacer { flex: 1; }
 .note-close, .note-save {
-  background: none; border: 0;
-  color: var(--paper);
-  font: 700 14px var(--mono);
-  cursor: pointer; padding: 0 4px;
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  background: rgba(26,26,26,0.10); border: 0; border-radius: 8px;
+  color: var(--ink);
+  font: 600 14px var(--body);
+  cursor: pointer;
+  transition: background 150ms ease;
 }
-.note-close:hover, .note-save:hover { color: var(--marker); }
+.note-close:hover, .note-save:hover { background: rgba(26,26,26,0.22); }
 
 .note-body {
-  padding: 12px 14px;
-  font-size: 13px; line-height: 1.5;
+  padding: 15px 16px 17px;
+  font-size: 14px; line-height: 1.55; font-weight: 500;
+  color: var(--ink);
   white-space: pre-wrap;
   overflow-wrap: break-word;
   max-height: 46vh; overflow-y: auto;
@@ -147,65 +191,105 @@ body.notes-mode #ink { pointer-events: none; cursor: default; }
 }
 .note-body code, .note-body pre {
   font-family: var(--mono);
-  background: #00000010;
-  padding: 0 3px;
+  font-size: 12.5px;
+  background: rgba(26,26,26,0.06);
+  border-radius: 5px;
+  padding: 1px 5px;
 }
 .note-body .caret {
   display: inline-block;
-  width: 8px; height: 14px;
-  background: var(--marker);
-  vertical-align: -2px;
-  animation: blink 0.8s steps(1) infinite;
+  width: 8px; height: 15px; border-radius: 2px;
+  background: var(--orange);
+  vertical-align: -3px;
+  animation: blink 0.85s steps(1) infinite;
 }
 @keyframes blink { 50% { opacity: 0; } }
 
 .note-foot {
-  padding: 5px 10px;
-  font-size: 10px; letter-spacing: 0.04em;
-  background: #d7f5dc; color: #14532d;
-  border-top: 2px solid var(--ink);
+  padding: 8px 14px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
+  background: var(--ok-bg); color: var(--ok-ink);
+  border-top: 1px solid rgba(26,26,26,0.06);
   overflow-wrap: break-word;
 }
-.note-foot.error { background: #ffd9d0; color: #7f1d1d; }
+.note-foot.error { background: var(--danger-bg); color: var(--danger-ink); }
 
-.note.error { background: #ffd9d0; }
-.note.error .note-head { background: var(--marker); color: var(--panel); }
+.note.error { background: #fff6f4; }
+.note.error .note-head { background: var(--danger); color: #fff; }
+.note.error .note-head .dot { background: #fff; }
+.note.error .note-close, .note.error .note-save { background: rgba(255,255,255,0.22); color: #fff; }
 
-/* ── Cards (API key, permissions) ──────────────────────────────────────── */
+/* ── Cards (welcome, API key, permissions) ─────────────────────────────── */
 .card {
   position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 440px; max-width: 90vw;
+  width: 460px; max-width: 90vw;
   background: var(--panel);
-  border: var(--border);
+  border-radius: 28px;
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 32px 30px;
 }
 .card-title {
   display: inline-block;
-  background: var(--marker); color: var(--panel);
-  padding: 4px 10px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
-  margin-bottom: 12px;
+  background: var(--orange); color: #fff;
+  padding: 6px 15px;
+  border-radius: var(--pill);
+  font-family: var(--display);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+  margin-bottom: 16px;
 }
-.card p { font-size: 13px; line-height: 1.55; margin-bottom: 10px; }
-.card .fine { font-size: 11px; color: #555; }
-.card code { background: #00000010; padding: 0 4px; }
+.card h2 {
+  font-family: var(--display);
+  font-size: 24px; font-weight: 600; letter-spacing: -0.4px;
+  margin-bottom: 10px;
+}
+.card p { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin-bottom: 12px; }
+.card p b { color: var(--ink); font-weight: 600; }
+.card .fine { font-size: 12px; color: #8a857c; }
+.card code {
+  font-family: var(--mono); font-size: 12.5px;
+  background: rgba(26,26,26,0.06); border-radius: 5px; padding: 1px 6px;
+}
+.card kbd {
+  font-family: var(--body); font-size: 12.5px; font-weight: 600;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 2px 8px; color: var(--ink);
+  box-shadow: 0 1.5px 0 var(--line);
+}
+.card ul { list-style: none; margin: 4px 0 14px; }
+.card li {
+  display: flex; align-items: baseline; gap: 12px;
+  font-size: 14px; line-height: 1.5; color: var(--ink-soft);
+  padding: 6px 0;
+}
+.card li .step {
+  flex: none;
+  font-family: var(--display); font-weight: 600; font-size: 13px;
+  color: #fff; background: var(--orange);
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+}
 .card input {
   width: 100%;
-  border: var(--border);
-  padding: 10px;
-  font: 13px var(--mono);
-  margin-bottom: 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: 500 14px var(--body);
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 150ms ease;
 }
+.card input:focus { border-color: var(--orange); }
 .card-actions { display: flex; gap: 10px; }
 .card button {
-  border: var(--border);
-  background: var(--paper);
-  box-shadow: 3px 3px 0 var(--ink);
-  font: 700 12px var(--mono); letter-spacing: 0.08em;
-  padding: 8px 14px; cursor: pointer;
+  border: 2px solid var(--ink);
+  border-radius: var(--pill);
+  background: var(--ink); color: #fff;
+  font: 600 13.5px var(--body); letter-spacing: 0.01em;
+  padding: 11px 22px; cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease;
 }
-.card button:hover { background: var(--marker); color: var(--panel); }
-.card button:active { transform: translate(3px, 3px); box-shadow: none; }
-.card button.ghost { background: var(--panel); }
+.card button:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.card button:active { transform: translateY(0); box-shadow: none; }
+.card button.primary { background: var(--orange); border-color: var(--orange); color: #fff; }
+.card button.ghost { background: transparent; color: var(--ink); }

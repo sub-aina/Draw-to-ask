@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FILE = () => path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { apiKey: '', model: 'qwen/qwen3.6-27b' };
+const DEFAULTS = { apiKey: '', model: 'qwen/qwen3.6-27b', seenWelcome: false };
 
 function loadSettings() {
   try {

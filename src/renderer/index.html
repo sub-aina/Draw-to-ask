@@ -15,7 +15,7 @@
   <canvas id="ink"></canvas>
 
   <!-- Dim veil + hint shown at session start -->
-  <div id="hint" class="chip" hidden>CIRCLE SOMETHING &nbsp;·&nbsp; ESC TO BAIL</div>
+  <div id="hint" class="chip" hidden>Circle something &nbsp;·&nbsp; Esc to bail</div>
 
   <!-- Floating question bar, appears near the stroke -->
   <div id="askbar" hidden>
@@ -28,31 +28,55 @@
     <div class="askbar-hint">ENTER = ask · keep drawing to widen · ESC = cancel</div>
   </div>
 
+  <!-- First-run welcome / how-it-works card -->
+  <div id="welcomecard" class="card" hidden>
+    <div class="card-title">WELCOME</div>
+    <h2>Circle it. Get an answer.</h2>
+    <p>Your screen is frozen. Draw around anything — an error, a chart, a line —
+       and the answer streams onto a sticky note right beside it.</p>
+    <ul>
+      <li><span class="step">1</span><span><b>Circle</b> something with the marker.</span></li>
+      <li><span class="step">2</span><span>Type a question, or just press <kbd>Enter</kbd> to let it infer one.</span></li>
+      <li><span class="step">3</span><span>Read the note. Drag it, save it with <b>⤓</b>, or dismiss with <b>✕</b>.</span></li>
+    </ul>
+    <p class="fine"><kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> draw ·
+       <kbd>Esc</kbd> dismiss · <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> quit</p>
+    <div class="card-actions">
+      <button id="welcomeok" type="button" class="primary">Start drawing</button>
+    </div>
+  </div>
+
   <!-- API key onboarding card -->
   <div id="keycard" class="card" hidden>
-    <div class="card-title">FIRST RUN: API KEY</div>
-    <p>Answers come from Groq (free tier). Get a key at
-       <b>console.groq.com/keys</b>, then paste it here (stored locally),
-       or quit and launch with <code>GROQ_API_KEY</code> set.</p>
+    <div class="card-title">ADD YOUR API KEY</div>
+    <p>Answers come from Groq's free tier. Grab a key at
+       <b>console.groq.com/keys</b> (no card required) and paste it below —
+       it's stored locally on this machine. Or quit and relaunch with
+       <code>GROQ_API_KEY</code> set.</p>
     <input id="keyinput" type="password" placeholder="gsk_…" spellcheck="false" />
     <div class="card-actions">
-      <button id="keysave" type="button">SAVE KEY</button>
-      <button id="keycancel" type="button" class="ghost">CANCEL</button>
+      <button id="keysave" type="button" class="primary">Save key</button>
+      <button id="keycancel" type="button" class="ghost">Cancel</button>
     </div>
   </div>
 
   <!-- macOS screen-recording permission card -->
   <div id="permcard" class="card" hidden>
-    <div class="card-title">SCREEN RECORDING PERMISSION</div>
-    <p>macOS blocks screen capture until you allow it:
-       <b>System Settings → Privacy &amp; Security → Screen Recording</b> →
-       enable this app, then <b>fully quit and relaunch</b> (the toggle does
-       nothing until restart).</p>
+    <div class="card-title">MACOS PERMISSION</div>
+    <h2>Allow screen capture</h2>
+    <p>macOS blocks screen capture until you grant it. In
+       <b>System Settings → Privacy &amp; Security → Screen &amp; System Audio
+       Recording</b>:</p>
+    <ul>
+      <li><span class="step">1</span><span><b>Add the app that launched Draw to Ask</b> — your <b>Terminal</b> (or iTerm) if you ran <code>drawtoask</code>, or <b>Draw to Ask</b> for a packaged build.</span></li>
+      <li><span class="step">2</span><span>Turn its toggle <b>on</b>.</span></li>
+      <li><span class="step">3</span><span><b>Fully quit and relaunch</b> — the toggle does nothing until you restart.</span></li>
+    </ul>
     <p class="fine">Heads-up: macOS 15 Sequoia re-asks roughly monthly — that's
        Apple, not us.</p>
     <div class="card-actions">
-      <button id="permopen" type="button">OPEN SETTINGS</button>
-      <button id="permclose" type="button" class="ghost">CLOSE</button>
+      <button id="permopen" type="button" class="primary">Open Settings</button>
+      <button id="permclose" type="button" class="ghost">Close</button>
     </div>
   </div>
 

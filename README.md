@@ -122,6 +122,8 @@ model required some adaptations, all built in:
   `~/Downloads/draw-to-ask-<timestamp>.md`, showing the path on the note.
 - Transparency trouble on broken GPU drivers: `DRAW_TO_ASK_NO_GPU=1 npm start`.
 
+### macOS
+
 macOS blocks screen capture until you grant **Screen & System Audio Recording**
 permission. This is where first-run fails, so do it in this order:
 
@@ -195,57 +197,3 @@ itself in.
 API key never enters it — image crops go up over IPC, answer text streams
 down. The key is stored plaintext in `userData` (same trust level as a
 `.env`); upgrade to Electron `safeStorage` before shipping.
-
-## File map
-
-```
-src/
-  main/
-    main.js        app lifecycle, hotkeys, overlay window, IPC, note saving
-    capture.js     desktopCapturer + portal/permission handling
-    groq.js        default backend — OpenAI-compatible vision + SSE streaming
-    anthropic.js   alternate backend: Anthropic Messages API
-    gemini.js      alternate backend: Google Gemini
-    settings.js    API key/model persistence
-  preload.js       contextBridge surface (the only main↔renderer bridge)
-  renderer/
-    index.html     overlay shell (frozen frame, ink canvas, ask bar, cards)
-    overlay.css    Neo-Brutalist tokens: sticky yellow, hard shadows, mono type
-    overlay.js     state machine: frozen → notes; crop+composite; sticky notes
-```
-
-## Website
-
-The landing page lives in [`site/`](site/) as a self-contained static page —
-`site/index.html`, no build step, no dependencies. (`Draw to Ask Warm.dc.html`
-in the repo root is the editable design-tool source; `site/index.html` is the
-rendered, deployable output.)
-
-Deploy it by pointing your static host at the **folder**, e.g. with
-[Surge](https://surge.sh):
-
-```bash
-surge site/ draw-to-ask.surge.sh
-```
-
-Deploying the repo root instead serves a 404 — there's no `index.html` there.
-
-## Roadmap / deliberate MVP cuts
-
-- **Append-to-journal saving** — one running `.md` of all answers (drop it in
-  an Obsidian vault) instead of a file per note
-- **Copy to clipboard** button on notes
-- **History** — persist `{crop, question, answer}` to a JSON log in `userData`
-- **Multi-monitor note migration** (capture already follows the cursor's display)
-- **safeStorage** for the key; code-signing + notarization for distribution
-- **Bundled IBM Plex Mono** (`src/renderer/fonts/` + `@font-face`) — currently
-  falls back to system mono to keep the repo network-free
-
-## Demo script (zero narration needed)
-
-1. Open a terminal with a gnarly compile error. Hotkey, circle the error,
-   Enter. The fix streams onto a sticky note next to it.
-2. Open a dense chart in a PDF. Hotkey, circle the weird part, type
-   "why the spike?", Enter.
-3. Drag the note somewhere satisfying, hit ⤓ to keep the answer. Click ✕.
-   Screen recording done.

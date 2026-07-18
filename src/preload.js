@@ -22,5 +22,6 @@ contextBridge.exposeInMainWorld('drawToAsk', {
   setIgnoreMouse: (ignore) => ipcRenderer.send('overlay:set-ignore-mouse', ignore),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setApiKey: (key) => ipcRenderer.invoke('settings:set-api-key', key),
+  markWelcomeSeen: () => ipcRenderer.send('settings:mark-welcome-seen'),
   openPermissionSettings: () => ipcRenderer.send('permissions:open-settings'),
 });
