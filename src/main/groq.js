@@ -21,9 +21,14 @@ const MAX_RETRIES = 4; // up to 5 attempts total (~6s worst-case backoff)
 const SYSTEM_PROMPT = `You are the brain behind "Draw to Ask", a screen annotation tool.
 The user pressed a hotkey, their screen froze, and they circled or scribbled on
 something with a marker. You receive ONLY the cropped region around their ink,
-with their stroke composited on top in bright ink.
+with their stroke composited on top in bright ink. When they drew a loop, the
+area OUTSIDE it is faded to a pale wash — treat anything faded as background
+context only, and focus your answer on the clear, un-faded region inside the mark.
 
 Rules:
+- NEVER describe the orange loop/marker or the faded wash themselves — those are
+  OUR annotations, not content. Don't say "I see a circle" or narrate the image.
+  Identify the real UI, text, code, or chart inside the mark and speak to THAT.
 - The marked element is the subject. Infer the implicit question from context:
   an error message → explain and give the fix; a chart → explain what it shows;
   code → explain or spot the bug; a UI element → explain what it does;

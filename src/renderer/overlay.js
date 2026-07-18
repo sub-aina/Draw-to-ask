@@ -228,6 +228,16 @@ function strokesBBox(list) {
   return { minX, minY, maxX, maxY };
 }
 
+// Shoelace area of a stroke treated as a closed polygon (CSS px²).
+function strokeArea(pts) {
+  let a = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const p = pts[i], q = pts[(i + 1) % n];
+    a += p.x * q.y - q.x * p.y;
+  }
+  return Math.abs(a) / 2;
+}
+
 function lastStrokeCentroid() {
   const pts = strokes[strokes.length - 1].points;
   let x = 0, y = 0;
@@ -323,8 +333,36 @@ function buildCrop() {
   const cx = c.getContext('2d');
   cx.drawImage(screenshot, sx, sy, sw, sh, 0, 0, cw, ch);
 
-  // Ink, transformed from CSS px into crop space.
   const k = scaleFactor * down;
+
+  // Focus the model on what's INSIDE the loop, not the whole bounding box.
+  // If the stroke(s) enclose a meaningful area (a circle/lasso, not a thin
+  // underline or scribble), veil everything outside the enclosed polygon so
+  // surrounding content that merely falls inside the crop rectangle fades away.
+  const cropAreaCss = (x1 - x0) * (y1 - y0);
+  const enclosedCss = strokes.reduce((sum, s) => sum + strokeArea(s.points), 0);
+  const looksLikeLoop = enclosedCss > 0.18 * cropAreaCss &&
+    strokes.some((s) => s.points.length > 8);
+
+  if (looksLikeLoop) {
+    cx.save();
+    cx.beginPath();
+    cx.rect(0, 0, cw, ch);                    // outer subpath …
+    for (const s of strokes) {                // … minus each loop (even-odd)
+      cx.moveTo((s.points[0].x - x0) * k, (s.points[0].y - y0) * k);
+      for (let i = 1; i < s.points.length; i++) {
+        cx.lineTo((s.points[i].x - x0) * k, (s.points[i].y - y0) * k);
+      }
+      cx.closePath();
+    }
+    // Neutral wash (not cream) so it fades context on BOTH light and dark
+    // backgrounds without inverting a dark UI into a bright ring.
+    cx.fillStyle = 'rgba(128,128,128,0.55)';
+    cx.fill('evenodd');
+    cx.restore();
+  }
+
+  // Ink, transformed from CSS px into crop space.
   cx.strokeStyle = MARKER;
   cx.lineWidth = STROKE_WIDTH * k;
   cx.lineJoin = 'round';
