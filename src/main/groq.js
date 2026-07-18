@@ -36,7 +36,13 @@ Rules:
 - If the user typed a question, answer THAT question about the marked region.
 - Be direct and compact: this renders on a small sticky note. Lead with the
   answer. 1–4 short sentences, or a tiny code snippet if a fix needs one.
-  No preamble, no "It looks like", no closing offers.`;
+  No preamble, no "It looks like", no closing offers.
+- PLAIN TEXT ONLY — the note has no Markdown or LaTeX rendering, so any syntax
+  shows up as raw characters. Do NOT use **, __, #, or backticks, and NEVER use
+  LaTeX (no \\(, \\[, \\int, ^{}, _{}). Write math in readable Unicode, e.g.
+  "A = ∫ from a to b of (top f(x) − bottom g(x)) dx", using symbols like
+  ∫ ∑ √ π ≤ ≥ × ÷ and superscripts like x². For a code fix, put the code on its
+  own line, indented, with no fences.`;
 
 /**
  * Stream an answer about a cropped, ink-annotated screenshot region.
