@@ -23,8 +23,12 @@ const el = {
   askbar: document.getElementById('askbar'),
   question: document.getElementById('question'),
   askbtn: document.getElementById('askbtn'),
+  providerbtn: document.getElementById('providerbtn'),
   keycard: document.getElementById('keycard'),
+  keyhelp: document.getElementById('keyhelp'),
+  provider: document.getElementById('provider'),
   keyinput: document.getElementById('keyinput'),
+  modelinput: document.getElementById('modelinput'),
   keysave: document.getElementById('keysave'),
   keycancel: document.getElementById('keycancel'),
   permcard: document.getElementById('permcard'),
@@ -266,7 +270,7 @@ function hideAskbar() {
 
 function submit() {
   if (!strokes.length || !screenshot) return;
-  if (!hasApiKey) { el.keycard.hidden = false; el.keyinput.focus(); return; }
+  if (!hasApiKey) { openKeycard(); return; }
   const question = el.question.value;
   const anchor = lastStrokeCentroid();
   const crop = buildCrop();
@@ -522,19 +526,72 @@ function makeDraggable(root, handle) {
   });
 }
 
-// ── API key card ─────────────────────────────────────────────────────────────
+// ── API key / provider card ──────────────────────────────────────────────────
+
+let providerCatalog = [];   // [{ id, label, keysUrl, placeholder, defaultModel, ... }]
+
+const providerById = (id) => providerCatalog.find((p) => p.id === id) || providerCatalog[0];
+
+// Reflect the currently-selected provider into the help text, placeholder and
+// model hint. Keeps the card honest whichever provider you land on.
+function refreshProviderUI() {
+  const p = providerById(el.provider.value);
+  if (!p) return;
+  el.keyinput.placeholder = p.configured
+    ? 'Key already set — leave blank to keep it'
+    : (p.placeholder || 'API key');
+  el.modelinput.placeholder = `Model (optional, default ${p.defaultModel})`;
+  const envNote = p.hasEnvKey ? ' A key is already set via environment variable.' : '';
+  const localNote = p.localKeyOptional ? ' Runs locally — the key can be anything.' : '';
+  el.keyhelp.innerHTML = `Get a ${p.label} key at <b>${p.keysUrl}</b>.${localNote}${envNote}`;
+}
+
+// Populate + reveal the card, seeding it from saved settings.
+async function openKeycard() {
+  const s = await api.getSettings();
+  providerCatalog = s.providers || [];
+  el.provider.innerHTML = providerCatalog
+    .map((p) => `<option value="${p.id}">${p.label}</option>`)
+    .join('');
+  el.provider.value = s.provider || providerCatalog[0]?.id || '';
+  el.modelinput.value = s.model || '';
+  el.keyinput.value = '';
+  refreshProviderUI();
+  el.keycard.hidden = false;
+  el.keyinput.focus();
+}
+
+el.provider.addEventListener('change', () => {
+  el.modelinput.value = '';
+  refreshProviderUI();
+});
+
+// Reopen the picker any time — even when a key is already set — so you can
+// switch providers or drop in a different key whenever you want.
+el.providerbtn.addEventListener('click', () => openKeycard());
 
 el.keysave.addEventListener('click', async () => {
+  const provider = el.provider.value;
   const key = el.keyinput.value.trim();
-  if (!key) return;
-  await api.setApiKey(key);
-  hasApiKey = true;
+  const p = providerById(provider);
+  // A key is required unless the provider already has one (stored/env) or is local.
+  if (!key && !p?.configured && !p?.localKeyOptional) return;
+  const { hasApiKey: keyed } = await api.saveSettings({
+    provider,
+    apiKey: key,
+    model: el.modelinput.value.trim(),
+  });
+  hasApiKey = keyed;
   el.keycard.hidden = true;
   el.keyinput.value = '';
-  submit(); // resume the ask that triggered onboarding
+  if (hasApiKey) submit(); // resume the ask that triggered onboarding
 });
 el.keycancel.addEventListener('click', () => { el.keycard.hidden = true; });
 el.keyinput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') el.keysave.click();
+  e.stopPropagation();
+});
+el.modelinput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') el.keysave.click();
   e.stopPropagation();
 });

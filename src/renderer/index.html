@@ -25,7 +25,8 @@
              placeholder="Ask about it… or just hit Enter" />
       <button id="askbtn" type="button">ASK</button>
     </div>
-    <div class="askbar-hint">ENTER = ask · keep drawing to widen · ESC = cancel</div>
+    <div class="askbar-hint">ENTER = ask · keep drawing to widen · ESC = cancel ·
+      <button id="providerbtn" type="button">⚙ AI provider</button></div>
   </div>
 
   <!-- First-run welcome / how-it-works card -->
@@ -48,14 +49,14 @@
 
   <!-- API key onboarding card -->
   <div id="keycard" class="card" hidden>
-    <div class="card-title">ADD YOUR API KEY</div>
-    <p>Answers come from Groq's free tier. Grab a key at
-       <b>console.groq.com/keys</b> (no card required) and paste it below —
-       it's stored locally on this machine. Or quit and relaunch with
-       <code>GROQ_API_KEY</code> set.</p>
+    <div class="card-title">CHOOSE YOUR AI PROVIDER</div>
+    <p>Pick any provider and paste its key — it's stored locally on this machine.
+       <span id="keyhelp"></span></p>
+    <select id="provider"></select>
     <input id="keyinput" type="password" placeholder="gsk_…" spellcheck="false" />
+    <input id="modelinput" type="text" placeholder="Model (optional)" spellcheck="false" />
     <div class="card-actions">
-      <button id="keysave" type="button" class="primary">Save key</button>
+      <button id="keysave" type="button" class="primary">Save</button>
       <button id="keycancel" type="button" class="ghost">Cancel</button>
     </div>
   </div>

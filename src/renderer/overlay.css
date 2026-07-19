@@ -135,6 +135,13 @@ body.notes-mode #ink { pointer-events: none; cursor: default; }
   color: #fff;
   text-shadow: 0 1px 3px rgba(0,0,0,.55);
 }
+#providerbtn {
+  border: 0; background: transparent; cursor: pointer;
+  color: #fff; font: inherit; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
+  text-shadow: inherit;
+}
+#providerbtn:hover { color: var(--orange); }
 
 /* ── Sticky note (the signature element) ───────────────────────────────── */
 .note {
@@ -269,17 +276,23 @@ body.notes-mode #ink { pointer-events: none; cursor: default; }
   width: 22px; height: 22px; border-radius: 50%;
   display: grid; place-items: center;
 }
-.card input {
+.card input,
+.card select {
   width: 100%;
   border: 2px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
   font: 500 14px var(--body);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   outline: none;
+  background: transparent;
+  color: var(--ink);
   transition: border-color 150ms ease;
 }
-.card input:focus { border-color: var(--orange); }
+.card input { margin-bottom: 12px; }
+.card input:last-of-type { margin-bottom: 16px; }
+.card input:focus,
+.card select:focus { border-color: var(--orange); }
 .card-actions { display: flex; gap: 10px; }
 .card button {
   border: 2px solid var(--ink);

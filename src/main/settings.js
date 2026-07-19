@@ -1,7 +1,9 @@
 // Tiny JSON settings store in the app's userData directory.
-// Holds the API key (if not provided via ANTHROPIC_API_KEY env var) and model.
+// Holds the chosen provider plus per-provider API keys and model overrides.
+// Keys are stored per provider so switching providers never loses a key you
+// already pasted.
 //
-// NOTE: this stores the key in plaintext on disk, scoped to the OS user —
+// NOTE: this stores keys in plaintext on disk, scoped to the OS user —
 // same trust level as ~/.aws/credentials or a .env file. For a shipped
 // product, upgrade to Electron's safeStorage (Keychain/DPAPI-backed).
 
@@ -10,13 +12,24 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FILE = () => path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { apiKey: '', model: 'qwen/qwen3.6-27b', seenWelcome: false };
+const DEFAULTS = { provider: 'groq', keys: {}, models: {}, seenWelcome: false };
+
+// Older builds stored a single { apiKey, model } pair (Groq-only). Fold those
+// into the per-provider shape so upgrades keep working with no user action.
+function migrate(raw) {
+  const s = { ...DEFAULTS, ...raw, keys: { ...raw.keys }, models: { ...raw.models } };
+  if (raw.apiKey && !s.keys.groq) s.keys.groq = raw.apiKey;
+  if (raw.model && !s.models.groq) s.models.groq = raw.model;
+  delete s.apiKey;
+  delete s.model;
+  return s;
+}
 
 function loadSettings() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(FILE(), 'utf8')) };
+    return migrate(JSON.parse(fs.readFileSync(FILE(), 'utf8')));
   } catch {
-    return { ...DEFAULTS };
+    return { ...DEFAULTS, keys: {}, models: {} };
   }
 }
 

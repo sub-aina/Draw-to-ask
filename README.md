@@ -26,8 +26,8 @@ Ctrl/Cmd+Shift+D ──▶ capture the display under the cursor (BEFORE overlay 
   a chart and it explains the trend; circle foreign text and it translates
 - ⚡ **Streaming answers** — the note types itself in
 - 💾 **Save notes** — one click writes the answer as a `.md` file
-- 🔌 **Swappable backends** — ships with Groq (free tier); Ollama, OpenRouter,
-  Anthropic, and Gemini clients included or one env var away
+- 🔌 **Bring any provider** — pick Groq (free tier), OpenAI, Anthropic, Gemini,
+  OpenRouter, or a local Ollama right in the overlay, and paste that key
 - 🐧🍎🪟 **Linux (X11 & Wayland), macOS, Windows**
 
 ## Quick start
@@ -40,11 +40,14 @@ npm install -g drawtoask
 drawtoask
 ```
 
-Give it a Groq API key the first time — paste it into the in-app overlay, or set
-it in your environment before launching:
+Give it an API key the first time. The in-app overlay has a **provider picker** —
+choose Groq, OpenAI, Anthropic, Gemini, OpenRouter, or a local Ollama, and paste
+that provider's key. Nothing is hard-wired to Groq. Prefer the environment? Set
+the matching variable before launching:
 
 ```bash
-export GROQ_API_KEY=gsk_...   # free key from console.groq.com/keys
+export GROQ_API_KEY=gsk_...        # free key from console.groq.com/keys
+# …or any of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY
 ```
 
 <details>
@@ -70,24 +73,33 @@ npm start
 The app is a background utility — no window, no dock icon. It lives on the
 hotkey until you quit it.
 
-## Choosing a model backend
+## Choosing a provider
 
-The default backend is **Groq's free tier** running Qwen 3.6 27B (`qwen/qwen3.6-27b`
-— multimodal, very fast, no credit card required). Because `src/main/groq.js`
-speaks the standard OpenAI Chat Completions shape, the same file works for any
-OpenAI-compatible endpoint:
+Pick a provider right in the overlay — hit **⚙ AI provider** in the ask bar (or
+it appears automatically the first time you ask without a key). Choose one, paste
+its key, and optionally override the model. Keys are stored **per provider**, so
+switching back and forth never loses a key you already pasted. The default is
+**Groq's free tier** running Qwen 3.6 27B (multimodal, very fast, no card).
 
-| Backend | How | Notes |
+| Provider | Default model | Notes |
 |---|---|---|
-| **Groq** (default) | `GROQ_API_KEY=gsk_...` | Free tier, fast, key from [console.groq.com](https://console.groq.com/keys) |
-| **Ollama** (local) | `GROQ_API_BASE=http://localhost:11434/v1`, model e.g. `llama3.2-vision` | Fully private — nothing leaves your machine. Fits a screen-capture tool. |
-| **OpenRouter** | `GROQ_API_BASE=https://openrouter.ai/api/v1` + their key | Free-tier vision models available |
-| **Anthropic** | swap the `require` in `main.js` to `./anthropic` | Strongest vision; `src/main/anthropic.js` is ready to go |
-| **Gemini** | swap the `require` to `./gemini` | Free tier is geo-restricted in some countries |
+| **Groq** (default) | `qwen/qwen3.6-27b` | Free tier, fast, key from [console.groq.com](https://console.groq.com/keys) |
+| **OpenAI** | `gpt-4o-mini` | Key from [platform.openai.com](https://platform.openai.com/api-keys) |
+| **Anthropic** | `claude-sonnet-4-6` | Strongest vision; key from [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| **Gemini** | `gemini-2.0-flash` | Free tier is geo-restricted in some countries |
+| **OpenRouter** | `google/gemini-2.0-flash-exp:free` | Free-tier vision models available |
+| **Ollama** (local) | `llama3.2-vision` | Fully private — nothing leaves your machine. The key can be anything. |
 
-The model name persists in `settings.json` under the app's `userData` dir
-(`~/.config/Draw to Ask/` on Linux, `~/Library/Application Support/Draw to Ask/`
-on macOS, `%APPDATA%/Draw to Ask/` on Windows).
+Under the hood, all the OpenAI-compatible endpoints (Groq, OpenAI, OpenRouter,
+Ollama) share one client — `src/main/groq.js`. To add another, drop a
+`kind: 'openai'` entry into `src/main/providers.js` with its `apiBase` and
+`defaultModel`; no other file changes. Anthropic and Gemini have their own
+clients (`src/main/anthropic.js`, `src/main/gemini.js`).
+
+Your provider choice, per-provider keys, and model overrides persist in
+`settings.json` under the app's `userData` dir (`~/.config/Draw to Ask/` on
+Linux, `~/Library/Application Support/Draw to Ask/` on macOS, `%APPDATA%/Draw to
+Ask/` on Windows).
 
 ## Spike the risky part first
 

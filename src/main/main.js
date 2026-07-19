@@ -20,8 +20,13 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const { captureDisplay, getScreenAccessStatus, openScreenRecordingSettings } = require('./capture');
-const { streamAnswer } = require('./groq');
+const providers = require('./providers');
 const { loadSettings, saveSettings } = require('./settings');
+
+// The stored key for a provider, falling back to that provider's env var(s).
+function keyFor(provider) {
+  return (settings.keys?.[provider] || '').trim() || providers.envKeyFor(provider);
+}
 
 const HOTKEY = 'CommandOrControl+Shift+D';
 const QUIT_HOTKEY = 'CommandOrControl+Shift+Q';
@@ -113,7 +118,7 @@ async function startSession() {
     dataUrl: shot.dataUrl,
     scaleFactor: display.scaleFactor,
     displayBounds: display.bounds,
-    hasApiKey: Boolean(settings.apiKey || process.env.GROQ_API_KEY),
+    hasApiKey: Boolean(keyFor(settings.provider)),
     seenWelcome: Boolean(settings.seenWelcome),
     // No click-through forwarding on Linux → the overlay blocks the desktop
     // anyway while notes are open, so keep the frozen image up for context
@@ -182,14 +187,26 @@ ipcMain.on('overlay:hide', () => {
 });
 
 ipcMain.handle('settings:get', () => ({
-  hasApiKey: Boolean(settings.apiKey || process.env.GROQ_API_KEY),
-  model: settings.model,
+  provider: settings.provider,
+  // `configured` = this provider already has a usable key (stored or env), so
+  // the picker knows it can switch to it without demanding a fresh paste.
+  providers: providers.catalog().map((p) => ({ ...p, configured: Boolean(keyFor(p.id)) })),
+  hasApiKey: Boolean(keyFor(settings.provider)),
+  model: settings.models?.[settings.provider] || '',
 }));
 
-ipcMain.handle('settings:set-api-key', (_e, key) => {
-  settings.apiKey = String(key || '').trim();
+// Save the chosen provider plus (optionally) its key and model override.
+// Called from the overlay's provider picker. Key/model are stored per provider
+// so switching back and forth never loses what you already entered. A blank
+// key means "keep whatever is already there" — it never wipes a stored key.
+ipcMain.handle('settings:save', (_e, { provider, apiKey, model } = {}) => {
+  if (provider && providers.PROVIDERS[provider]) settings.provider = provider;
+  const p = settings.provider;
+  const key = String(apiKey || '').trim();
+  if (key) settings.keys[p] = key;
+  if (model !== undefined) settings.models[p] = String(model || '').trim();
   saveSettings(settings);
-  return true;
+  return { hasApiKey: Boolean(keyFor(p)) };
 });
 
 ipcMain.on('settings:mark-welcome-seen', () => {
@@ -238,14 +255,19 @@ ipcMain.handle('note:save', async (_e, { text, question } = {}) => {
 
 // Ask the vision model. Streams chunks back so the sticky note types itself in.
 ipcMain.handle('ask', async (event, { imageBase64, mediaType, question, requestId }) => {
-  const apiKey = settings.apiKey || process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('No API key configured. Set GROQ_API_KEY or add one in the overlay.');
+  const providerId = settings.provider;
+  const provider = providers.getProvider(providerId);
+  const apiKey = keyFor(providerId);
+  if (!apiKey && !provider.localKeyOptional) {
+    throw new Error(`No API key configured for ${provider.label}. Add one in the overlay.`);
+  }
 
   const wc = event.sender;
   try {
-    const full = await streamAnswer({
-      apiKey,
-      model: settings.model,
+    const full = await providers.moduleFor(providerId).streamAnswer({
+      apiKey: apiKey || 'no-key', // some local endpoints (Ollama) ignore this
+      model: settings.models?.[providerId] || provider.defaultModel,
+      apiBase: provider.apiBase, // ignored by non-OpenAI clients
       imageBase64,
       mediaType,
       question,

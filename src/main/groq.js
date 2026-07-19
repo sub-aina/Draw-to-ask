@@ -11,7 +11,7 @@
 // Streaming events: choices[0].delta.content, terminated by  data: [DONE]
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_BASE = process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1';
+const DEFAULT_API_BASE = process.env.GROQ_API_BASE || 'https://api.groq.com/openai/v1';
 const DEFAULT_MODEL = 'qwen/qwen3.6-27b'; // multimodal (replaces deprecated llama-4-scout)
 
 // Transient upstream failures worth retrying (rate limit + gateway/capacity).
@@ -48,7 +48,8 @@ Rules:
  * Stream an answer about a cropped, ink-annotated screenshot region.
  * @returns {Promise<string>} the full answer text
  */
-async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png', question, onChunk }) {
+async function streamAnswer({ apiKey, model, apiBase, imageBase64, mediaType = 'image/png', question, onChunk }) {
+  const base = (apiBase || DEFAULT_API_BASE).replace(/\/+$/, '');
   const userContent = [
     { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
     {
@@ -77,7 +78,7 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
   // Retry those silently before the connection opens; surface everything else.
   let res;
   for (let attempt = 0; ; attempt++) {
-    res = await fetch(`${API_BASE}/chat/completions`, {
+    res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -179,4 +180,4 @@ async function streamAnswer({ apiKey, model, imageBase64, mediaType = 'image/png
   return full;
 }
 
-module.exports = { streamAnswer, DEFAULT_MODEL };
+module.exports = { streamAnswer, DEFAULT_MODEL, DEFAULT_API_BASE };
